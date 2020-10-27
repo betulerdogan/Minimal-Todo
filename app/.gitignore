@@ -302,6 +302,12 @@ obj/
 .idea/dynamic.xml
 .idea/uiDesigner.xml
 .idea/jarRepositories.xml
+/.idea/
+/.idea/caches/
+/.idea/gradle.xml
+/.idea/jarRepositories.xml
+/.idea/workspace.xml
+
 
 # OS-specific files
 .DS_Store
@@ -330,6 +336,8 @@ Thumbs.db
 
 # JIRA plugin
 
+
+
 # Mongo Explorer plugin
 .idea/mongoSettings.xml
 
@@ -340,4 +348,5 @@ Thumbs.db
 !/gradle/wrapper/gradle-wrapper.jar
 
 # End of https://www.toptal.com/developers/gitignore/api/android,androidstudio,java,kotlin,intellij
-/.idea/
+
+
