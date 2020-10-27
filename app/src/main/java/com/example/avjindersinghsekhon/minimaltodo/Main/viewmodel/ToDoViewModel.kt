@@ -36,11 +36,11 @@ class ToDoViewModel(
                 .subscribe({ items.value = it }, { /** Handle Error*/ })
     }
 
-    private fun saveItem(item: ToDoItem) {
+     fun saveItem(item: ToDoItem) {
         repository.saveItem(item)
     }
 
-    private fun deleteItem(item: ToDoItem) {
+     fun deleteItem(item: ToDoItem) {
         repository.deleteItem(item)
     }
 

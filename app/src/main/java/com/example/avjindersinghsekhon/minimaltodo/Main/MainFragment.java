@@ -7,14 +7,24 @@ import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.graphics.Typeface;
 import android.os.Bundle;
+
 import androidx.annotation.Nullable;
 import androidx.coordinatorlayout.widget.CoordinatorLayout;
+
+import com.example.avjindersinghsekhon.minimaltodo.Main.viewmodel.ToDoViewModel;
+import com.example.avjindersinghsekhon.minimaltodo.Main.viewmodel.ToDoViewModelFactory;
+import com.example.avjindersinghsekhon.minimaltodo.database.AppDatabase;
+import com.example.avjindersinghsekhon.minimaltodo.database.dao.ToDoDao;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.snackbar.Snackbar;
+
+import androidx.lifecycle.Observer;
+import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.DefaultItemAnimator;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import androidx.recyclerview.widget.ItemTouchHelper;
+
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.MenuItem;
@@ -41,12 +51,15 @@ import com.example.avjindersinghsekhon.minimaltodo.Utility.StoreRetrieveData;
 import com.example.avjindersinghsekhon.minimaltodo.Utility.ToDoItem;
 import com.example.avjindersinghsekhon.minimaltodo.Utility.TodoNotificationService;
 
+import static com.example.avjindersinghsekhon.minimaltodo.AddToDo.AddToDoActivity.TODOITEM;
+
 import org.json.JSONException;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
+import java.util.List;
 
 import static android.app.Activity.RESULT_CANCELED;
 import static android.content.Context.ALARM_SERVICE;
@@ -71,7 +84,6 @@ public class MainFragment extends AppDefaultFragment {
     public static final String CHANGE_OCCURED = "com.avjinder.changeoccured";
     private int mTheme = -1;
     private String theme = "name_of_the_theme";
-    public static final String TODOITEM = "com.avjindersinghsekhon.com.avjindersinghsekhon.minimaltodo.MainActivity";
     public static final String THEME_PREFERENCES = "com.avjindersekhon.themepref";
     public static final String RECREATE_ACTIVITY = "com.avjindersekhon.recreateactivity";
     public static final String THEME_SAVED = "com.avjindersekhon.savedtheme";
@@ -84,8 +96,25 @@ public class MainFragment extends AppDefaultFragment {
             "Get my dry cleaning"
     };
 
+    private ToDoViewModel toDoViewModel;
+
     @Override
-    public void onViewCreated(View view, @Nullable Bundle savedInstanceState) {
+    public void onCreate(@Nullable Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+
+        toDoViewModel = getViewModel();
+    }
+
+    private ToDoViewModel getViewModel() {
+        ToDoDao dao = AppDatabase.getAppDatabase(getContext()).toDoDao();
+        ToDoViewModelFactory factory = new ToDoViewModelFactory(dao);
+        ViewModelProvider provider = new ViewModelProvider(getViewModelStore(), factory);
+
+        return provider.get(ToDoViewModel.class);
+    }
+
+    @Override
+    public void onViewCreated(final View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
         app = (AnalyticsApplication) getActivity().getApplication();
         setTheme();
@@ -93,7 +122,6 @@ public class MainFragment extends AppDefaultFragment {
 
         storeRetrieveData = new StoreRetrieveData(getContext(), FILENAME);
         mToDoItemsArrayList = getLocallyStoredData(storeRetrieveData);
-        adapter = new MainFragment.BasicListAdapter(mToDoItemsArrayList);
         setAlarms();
 
         mCoordLayout = (CoordinatorLayout) view.findViewById(R.id.myCoordinatorLayout);
@@ -108,7 +136,15 @@ public class MainFragment extends AppDefaultFragment {
             }
         });
 
-        initRecyclerView(view);
+        toDoViewModel.getItems().observe(getViewLifecycleOwner(), new Observer<List<ToDoItem>>() {
+            @Override
+            public void onChanged(List<ToDoItem> toDoItems) {
+                adapter = new MainFragment.BasicListAdapter(new ArrayList<>(toDoItems));
+                initRecyclerView(view);
+            }
+        });
+
+
     }
 
     public static ArrayList<ToDoItem> getLocallyStoredData(StoreRetrieveData storeRetrieveData) {
@@ -130,7 +166,7 @@ public class MainFragment extends AppDefaultFragment {
     @Override
     public void onStart() {
         super.onStart();
-        refreshAdapter();
+        //refreshAdapter();
 
         app = (AnalyticsApplication) getActivity().getApplication();
     }
@@ -210,10 +246,15 @@ public class MainFragment extends AppDefaultFragment {
     }
 
     private void initRecyclerView(View view) {
-        mRecyclerView = (RecyclerViewEmptySupport) view.findViewById(R.id.toDoRecyclerView);
+        mRecyclerView = view.findViewById(R.id.toDoRecyclerView);
         if (theme.equals(LIGHTTHEME)) {
             mRecyclerView.setBackgroundColor(getResources().getColor(R.color.primary_lightest));
         }
+
+        if (itemTouchHelper != null) {
+            itemTouchHelper.attachToRecyclerView(null);
+        }
+
         mRecyclerView.setEmptyView(view.findViewById(R.id.toDoEmptyView));
         mRecyclerView.setHasFixedSize(true);
         mRecyclerView.setItemAnimator(new DefaultItemAnimator());
@@ -281,24 +322,12 @@ public class MainFragment extends AppDefaultFragment {
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
         if (resultCode != RESULT_CANCELED && requestCode == REQUEST_ID_TODO_ITEM) {
             ToDoItem item = (ToDoItem) data.getSerializableExtra(TODOITEM);
+
             if (item.getToDoText().length() <= 0) {
                 return;
             }
-            boolean existed = false;
-
+            toDoViewModel.saveItem(item);
             createAlarmIfNecessary(item);
-
-            for (int i = 0; i < mToDoItemsArrayList.size(); i++) {
-                if (item.getIdentifier().equals(mToDoItemsArrayList.get(i).getIdentifier())) {
-                    mToDoItemsArrayList.set(i, item);
-                    existed = true;
-                    adapter.notifyDataSetChanged();
-                    break;
-                }
-            }
-            if (!existed) {
-                addToDataStore(item);
-            }
         }
     }
 
@@ -361,8 +390,10 @@ public class MainFragment extends AppDefaultFragment {
         public void onItemRemoved(final int position) {
             //Remove this line if not using Google Analytics
             app.send(this, "Action", "Swiped Todo Away");
+            mJustDeletedToDoItem = items.get(position);
+            toDoViewModel.deleteItem(mJustDeletedToDoItem);
 
-            mJustDeletedToDoItem = items.remove(position);
+
             mIndexOfDeletedToDoItem = position;
             Intent i = new Intent(getContext(), TodoNotificationService.class);
             deleteAlarm(i, mJustDeletedToDoItem.getIdentifier().hashCode());
@@ -375,7 +406,7 @@ public class MainFragment extends AppDefaultFragment {
                         public void onClick(View v) {
                             //Comment the line below if not using Google Analytics
                             app.send(this, "Action", "UNDO Pressed");
-                            items.add(mIndexOfDeletedToDoItem, mJustDeletedToDoItem);
+                            toDoViewModel.saveItem(mJustDeletedToDoItem);
                             if (mJustDeletedToDoItem.getToDoDate() != null && mJustDeletedToDoItem.hasReminder()) {
                                 Intent i = new Intent(getContext(), TodoNotificationService.class);
                                 i.putExtra(TodoNotificationService.TODOTEXT, mJustDeletedToDoItem.getToDoText());
