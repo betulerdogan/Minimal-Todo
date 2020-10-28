@@ -11,7 +11,7 @@ import androidx.appcompat.widget.Toolbar;
 import android.view.MenuItem;
 
 import com.example.avjindersinghsekhon.minimaltodo.Analytics.AnalyticsApplication;
-import com.example.avjindersinghsekhon.minimaltodo.Main.MainFragment;
+import com.example.avjindersinghsekhon.minimaltodo.Main.view.MainFragment;
 import com.example.avjindersinghsekhon.minimaltodo.R;
 
 public class SettingsActivity extends AppCompatActivity {

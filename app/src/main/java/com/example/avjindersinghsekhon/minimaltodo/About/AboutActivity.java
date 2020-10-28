@@ -15,7 +15,7 @@ import android.widget.TextView;
 
 import com.example.avjindersinghsekhon.minimaltodo.Analytics.AnalyticsApplication;
 import com.example.avjindersinghsekhon.minimaltodo.AppDefault.AppDefaultActivity;
-import com.example.avjindersinghsekhon.minimaltodo.Main.MainFragment;
+import com.example.avjindersinghsekhon.minimaltodo.Main.view.MainFragment;
 import com.example.avjindersinghsekhon.minimaltodo.R;
 
 public class AboutActivity extends AppDefaultActivity {

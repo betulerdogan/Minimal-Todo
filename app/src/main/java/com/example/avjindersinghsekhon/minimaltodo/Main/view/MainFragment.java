@@ -1,4 +1,4 @@
-package com.example.avjindersinghsekhon.minimaltodo.Main;
+package com.example.avjindersinghsekhon.minimaltodo.Main.view;
 
 import android.app.AlarmManager;
 import android.app.PendingIntent;
@@ -11,6 +11,8 @@ import android.os.Bundle;
 import androidx.annotation.Nullable;
 import androidx.coordinatorlayout.widget.CoordinatorLayout;
 
+import com.example.avjindersinghsekhon.minimaltodo.Main.CustomRecyclerScrollViewListener;
+import com.example.avjindersinghsekhon.minimaltodo.Main.model.ToDoListener;
 import com.example.avjindersinghsekhon.minimaltodo.Main.viewmodel.ToDoViewModel;
 import com.example.avjindersinghsekhon.minimaltodo.Main.viewmodel.ToDoViewModelFactory;
 import com.example.avjindersinghsekhon.minimaltodo.database.AppDatabase;
@@ -53,6 +55,7 @@ import com.example.avjindersinghsekhon.minimaltodo.Utility.TodoNotificationServi
 
 import static com.example.avjindersinghsekhon.minimaltodo.AddToDo.AddToDoActivity.TODOITEM;
 
+import org.jetbrains.annotations.NotNull;
 import org.json.JSONException;
 
 import java.io.IOException;
@@ -65,15 +68,13 @@ import static android.app.Activity.RESULT_CANCELED;
 import static android.content.Context.ALARM_SERVICE;
 import static android.content.Context.MODE_PRIVATE;
 
-public class MainFragment extends AppDefaultFragment {
+public class MainFragment extends AppDefaultFragment implements ToDoListener {
     private RecyclerViewEmptySupport mRecyclerView;
     private FloatingActionButton mAddToDoItemFAB;
     private ArrayList<ToDoItem> mToDoItemsArrayList;
     private CoordinatorLayout mCoordLayout;
-    private MainFragment.BasicListAdapter adapter;
+    private BasicListAdapter adapter;
     private static final int REQUEST_ID_TODO_ITEM = 100;
-    private ToDoItem mJustDeletedToDoItem;
-    private int mIndexOfDeletedToDoItem;
     public static final String DATE_TIME_FORMAT_12_HOUR = "MMM d, yyyy  h:mm a";
     public static final String DATE_TIME_FORMAT_24_HOUR = "MMM d, yyyy  k:mm";
     public static final String FILENAME = "todoitems.json";
@@ -139,12 +140,10 @@ public class MainFragment extends AppDefaultFragment {
         toDoViewModel.getItems().observe(getViewLifecycleOwner(), new Observer<List<ToDoItem>>() {
             @Override
             public void onChanged(List<ToDoItem> toDoItems) {
-                adapter = new MainFragment.BasicListAdapter(new ArrayList<>(toDoItems));
+                adapter = new BasicListAdapter(new ArrayList<>(toDoItems), MainFragment.this, getContext());
                 initRecyclerView(view);
             }
         });
-
-
     }
 
     public static ArrayList<ToDoItem> getLocallyStoredData(StoreRetrieveData storeRetrieveData) {
@@ -161,30 +160,6 @@ public class MainFragment extends AppDefaultFragment {
             items = new ArrayList<>();
         }
         return items;
-    }
-
-    @Override
-    public void onStart() {
-        super.onStart();
-        //refreshAdapter();
-
-        app = (AnalyticsApplication) getActivity().getApplication();
-    }
-
-    private void refreshAdapter() {
-        SharedPreferences sharedPreferences = getActivity().getSharedPreferences(SHARED_PREF_DATA_SET_CHANGED, MODE_PRIVATE);
-        if (sharedPreferences.getBoolean(CHANGE_OCCURED, false)) {
-            mToDoItemsArrayList = getLocallyStoredData(storeRetrieveData);
-            adapter = new MainFragment.BasicListAdapter(mToDoItemsArrayList);
-            mRecyclerView.setAdapter(adapter);
-            setAlarms();
-
-            SharedPreferences.Editor editor = sharedPreferences.edit();
-            editor.putBoolean(CHANGE_OCCURED, false);
-            editor.apply();
-
-
-        }
     }
 
     @Override
@@ -369,143 +344,6 @@ public class MainFragment extends AppDefaultFragment {
         adapter.notifyItemInserted(mToDoItemsArrayList.size() - 1);
     }
 
-    public class BasicListAdapter extends RecyclerView.Adapter<BasicListAdapter.ViewHolder> implements ItemTouchHelperClass.ItemTouchHelperAdapter {
-        private ArrayList<ToDoItem> items;
-
-        @Override
-        public void onItemMoved(int fromPosition, int toPosition) {
-            if (fromPosition < toPosition) {
-                for (int i = fromPosition; i < toPosition; i++) {
-                    Collections.swap(items, i, i + 1);
-                }
-            } else {
-                for (int i = fromPosition; i > toPosition; i--) {
-                    Collections.swap(items, i, i - 1);
-                }
-            }
-            notifyItemMoved(fromPosition, toPosition);
-        }
-
-        @Override
-        public void onItemRemoved(final int position) {
-            //Remove this line if not using Google Analytics
-            app.send(this, "Action", "Swiped Todo Away");
-            mJustDeletedToDoItem = items.get(position);
-            toDoViewModel.deleteItem(mJustDeletedToDoItem);
-
-
-            mIndexOfDeletedToDoItem = position;
-            Intent i = new Intent(getContext(), TodoNotificationService.class);
-            deleteAlarm(i, mJustDeletedToDoItem.getIdentifier().hashCode());
-            notifyItemRemoved(position);
-
-            String toShow = "Todo";
-            Snackbar.make(mCoordLayout, "Deleted " + toShow, Snackbar.LENGTH_LONG)
-                    .setAction("UNDO", new View.OnClickListener() {
-                        @Override
-                        public void onClick(View v) {
-                            //Comment the line below if not using Google Analytics
-                            app.send(this, "Action", "UNDO Pressed");
-                            toDoViewModel.saveItem(mJustDeletedToDoItem);
-                            if (mJustDeletedToDoItem.getToDoDate() != null && mJustDeletedToDoItem.hasReminder()) {
-                                Intent i = new Intent(getContext(), TodoNotificationService.class);
-                                i.putExtra(TodoNotificationService.TODOTEXT, mJustDeletedToDoItem.getToDoText());
-                                i.putExtra(TodoNotificationService.TODOUUID, mJustDeletedToDoItem.getIdentifier());
-                                createAlarm(i, mJustDeletedToDoItem.getIdentifier().hashCode(), mJustDeletedToDoItem.getToDoDate().getTime());
-                            }
-                            notifyItemInserted(mIndexOfDeletedToDoItem);
-                        }
-                    }).show();
-        }
-
-        @Override
-        public BasicListAdapter.ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
-            View v = LayoutInflater.from(parent.getContext()).inflate(R.layout.list_circle_try, parent, false);
-            return new ViewHolder(v);
-        }
-
-        @Override
-        public void onBindViewHolder(final BasicListAdapter.ViewHolder holder, final int position) {
-            ToDoItem item = items.get(position);
-            SharedPreferences sharedPreferences = getActivity().getSharedPreferences(THEME_PREFERENCES, MODE_PRIVATE);
-            //Background color for each to-do item. Necessary for night/day mode
-            int bgColor;
-            //color of title text in our to-do item. White for night mode, dark gray for day mode
-            int todoTextColor;
-            if (sharedPreferences.getString(THEME_SAVED, LIGHTTHEME).equals(LIGHTTHEME)) {
-                bgColor = Color.WHITE;
-                todoTextColor = getResources().getColor(R.color.secondary_text);
-            } else {
-                bgColor = Color.DKGRAY;
-                todoTextColor = Color.WHITE;
-            }
-            holder.linearLayout.setBackgroundColor(bgColor);
-
-            if (item.hasReminder() && item.getToDoDate() != null) {
-                holder.mToDoTextview.setMaxLines(1);
-                holder.mTimeTextView.setVisibility(View.VISIBLE);
-            } else {
-                holder.mTimeTextView.setVisibility(View.GONE);
-                holder.mToDoTextview.setMaxLines(2);
-            }
-            holder.mToDoTextview.setText(item.getToDoText());
-            holder.mToDoTextview.setTextColor(todoTextColor);
-
-            TextDrawable myDrawable = TextDrawable.builder().beginConfig()
-                    .textColor(Color.WHITE)
-                    .useFont(Typeface.DEFAULT)
-                    .toUpperCase()
-                    .endConfig()
-                    .buildRound(item.getToDoText().substring(0, 1), item.getTodoColor());
-
-            holder.mColorImageView.setImageDrawable(myDrawable);
-            if (item.getToDoDate() != null) {
-                String timeToShow;
-                if (android.text.format.DateFormat.is24HourFormat(getContext())) {
-                    timeToShow = AddToDoFragment.formatDate(MainFragment.DATE_TIME_FORMAT_24_HOUR, item.getToDoDate());
-                } else {
-                    timeToShow = AddToDoFragment.formatDate(MainFragment.DATE_TIME_FORMAT_12_HOUR, item.getToDoDate());
-                }
-                holder.mTimeTextView.setText(timeToShow);
-            }
-        }
-
-        @Override
-        public int getItemCount() {
-            return items.size();
-        }
-
-        BasicListAdapter(ArrayList<ToDoItem> items) {
-            this.items = items;
-        }
-
-        @SuppressWarnings("deprecation")
-        public class ViewHolder extends RecyclerView.ViewHolder {
-            View mView;
-            LinearLayout linearLayout;
-            TextView mToDoTextview;
-            ImageView mColorImageView;
-            TextView mTimeTextView;
-
-            public ViewHolder(View v) {
-                super(v);
-                mView = v;
-                v.setOnClickListener(new View.OnClickListener() {
-                    @Override
-                    public void onClick(View v) {
-                        ToDoItem item = items.get(ViewHolder.this.getAdapterPosition());
-                        Intent i = new Intent(getContext(), AddToDoActivity.class);
-                        i.putExtra(TODOITEM, item);
-                        startActivityForResult(i, REQUEST_ID_TODO_ITEM);
-                    }
-                });
-                mToDoTextview = (TextView) v.findViewById(R.id.toDoListItemTextview);
-                mTimeTextView = (TextView) v.findViewById(R.id.todoListItemTimeTextView);
-                mColorImageView = (ImageView) v.findViewById(R.id.toDoListItemColorImageView);
-                linearLayout = (LinearLayout) v.findViewById(R.id.listItemLinearLayout);
-            }
-        }
-    }
 
     @Override
     public void onPause() {
@@ -531,5 +369,35 @@ public class MainFragment extends AppDefaultFragment {
 
     public static MainFragment newInstance() {
         return new MainFragment();
+    }
+
+    @Override
+    public void onClick(@NotNull ToDoItem item) {
+        AddToDoActivity.startForResult(this, item, REQUEST_ID_TODO_ITEM);
+    }
+
+    @Override
+    public void onRemove(final @NotNull ToDoItem item) {
+        app.send(this, "Action", "Swiped Todo Away");
+        toDoViewModel.deleteItem(item);
+        Intent i = new Intent(getContext(), TodoNotificationService.class);
+        deleteAlarm(i, item.getIdentifier().hashCode());
+
+        String toShow = "Todo";
+        Snackbar.make(mCoordLayout, "Deleted " + toShow, Snackbar.LENGTH_LONG)
+                .setAction("UNDO", new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        //Comment the line below if not using Google Analytics
+                        app.send(this, "Action", "UNDO Pressed");
+                        toDoViewModel.saveItem(item);
+                        if (item.getToDoDate() != null && item.hasReminder()) {
+                            Intent i = new Intent(getContext(), TodoNotificationService.class);
+                            i.putExtra(TodoNotificationService.TODOTEXT, item.getToDoText());
+                            i.putExtra(TodoNotificationService.TODOUUID, item.getIdentifier());
+                            createAlarm(i, item.getIdentifier().hashCode(), item.getToDoDate().getTime());
+                        }
+                    }
+                }).show();
     }
 }
