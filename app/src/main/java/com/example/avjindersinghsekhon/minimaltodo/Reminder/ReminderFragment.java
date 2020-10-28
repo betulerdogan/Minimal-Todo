@@ -4,9 +4,11 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.os.Bundle;
+
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
+
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -35,6 +37,11 @@ import java.util.UUID;
 import fr.ganfra.materialspinner.MaterialSpinner;
 
 import static android.content.Context.MODE_PRIVATE;
+import static com.example.avjindersinghsekhon.minimaltodo.Main.model.PrefsHelper.CHANGE_OCCURED;
+import static com.example.avjindersinghsekhon.minimaltodo.Main.model.PrefsHelper.LIGHTTHEME;
+import static com.example.avjindersinghsekhon.minimaltodo.Main.model.PrefsHelper.SHARED_PREF_DATA_SET_CHANGED;
+import static com.example.avjindersinghsekhon.minimaltodo.Main.model.PrefsHelper.THEME_PREFERENCES;
+import static com.example.avjindersinghsekhon.minimaltodo.Main.model.PrefsHelper.THEME_SAVED;
 
 public class ReminderFragment extends AppDefaultFragment {
     private TextView mtoDoTextTextView;
@@ -55,8 +62,8 @@ public class ReminderFragment extends AppDefaultFragment {
         app = (AnalyticsApplication) getActivity().getApplication();
         app.send(this);
 
-        theme = getActivity().getSharedPreferences(MainFragment.THEME_PREFERENCES, MODE_PRIVATE).getString(MainFragment.THEME_SAVED, MainFragment.LIGHTTHEME);
-        if (theme.equals(MainFragment.LIGHTTHEME)) {
+        theme = getActivity().getSharedPreferences(THEME_PREFERENCES, MODE_PRIVATE).getString(THEME_SAVED, LIGHTTHEME);
+        if (theme.equals(LIGHTTHEME)) {
             getActivity().setTheme(R.style.CustomStyle_LightTheme);
         } else {
             getActivity().setTheme(R.style.CustomStyle_DarkTheme);
@@ -87,7 +94,7 @@ public class ReminderFragment extends AppDefaultFragment {
 //        mtoDoTextTextView.setBackgroundColor(item.getTodoColor());
         mtoDoTextTextView.setText(mItem.getToDoText());
 
-        if (theme.equals(MainFragment.LIGHTTHEME)) {
+        if (theme.equals(LIGHTTHEME)) {
             mSnoozeTextView.setTextColor(getResources().getColor(R.color.secondary_text));
         } else {
             mSnoozeTextView.setTextColor(Color.WHITE);
@@ -124,15 +131,7 @@ public class ReminderFragment extends AppDefaultFragment {
     }
 
     private void closeApp() {
-        Intent i = new Intent(getContext(), MainActivity.class);
-        i.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
-//        i.putExtra(EXIT, true);
-        SharedPreferences sharedPreferences = getActivity().getSharedPreferences(MainFragment.SHARED_PREF_DATA_SET_CHANGED, MODE_PRIVATE);
-        SharedPreferences.Editor editor = sharedPreferences.edit();
-        editor.putBoolean(EXIT, true);
-        editor.apply();
-        startActivity(i);
-
+        getActivity().finishAffinity();
     }
 
 
@@ -142,9 +141,9 @@ public class ReminderFragment extends AppDefaultFragment {
     }
 
     private void changeOccurred() {
-        SharedPreferences sharedPreferences = getActivity().getSharedPreferences(MainFragment.SHARED_PREF_DATA_SET_CHANGED, MODE_PRIVATE);
+        SharedPreferences sharedPreferences = getActivity().getSharedPreferences(SHARED_PREF_DATA_SET_CHANGED, MODE_PRIVATE);
         SharedPreferences.Editor editor = sharedPreferences.edit();
-        editor.putBoolean(MainFragment.CHANGE_OCCURED, true);
+        editor.putBoolean(CHANGE_OCCURED, true);
 //        editor.commit();
         editor.apply();
     }
@@ -189,7 +188,6 @@ public class ReminderFragment extends AppDefaultFragment {
         }
     }
 
-
     private void saveData() {
         try {
             storeRetrieveData.saveToFile(mToDoItems);
@@ -197,7 +195,6 @@ public class ReminderFragment extends AppDefaultFragment {
             e.printStackTrace();
         }
     }
-
 
     public static ReminderFragment newInstance() {
         return new ReminderFragment();

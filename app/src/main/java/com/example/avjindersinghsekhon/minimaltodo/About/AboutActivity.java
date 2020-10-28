@@ -1,14 +1,13 @@
 package com.example.avjindersinghsekhon.minimaltodo.About;
 
 import android.content.pm.PackageInfo;
-import android.graphics.Color;
-import android.graphics.PorterDuff;
-import android.graphics.drawable.Drawable;
 import android.os.Bundle;
+
 import androidx.annotation.NonNull;
 import androidx.fragment.app.Fragment;
 import androidx.core.app.NavUtils;
 import androidx.appcompat.widget.Toolbar;
+
 import android.util.Log;
 import android.view.MenuItem;
 import android.widget.TextView;
@@ -17,6 +16,11 @@ import com.example.avjindersinghsekhon.minimaltodo.Analytics.AnalyticsApplicatio
 import com.example.avjindersinghsekhon.minimaltodo.AppDefault.AppDefaultActivity;
 import com.example.avjindersinghsekhon.minimaltodo.Main.view.MainFragment;
 import com.example.avjindersinghsekhon.minimaltodo.R;
+
+import static com.example.avjindersinghsekhon.minimaltodo.Main.model.PrefsHelper.DARKTHEME;
+import static com.example.avjindersinghsekhon.minimaltodo.Main.model.PrefsHelper.LIGHTTHEME;
+import static com.example.avjindersinghsekhon.minimaltodo.Main.model.PrefsHelper.THEME_PREFERENCES;
+import static com.example.avjindersinghsekhon.minimaltodo.Main.model.PrefsHelper.THEME_SAVED;
 
 public class AboutActivity extends AppDefaultActivity {
 
@@ -32,8 +36,8 @@ public class AboutActivity extends AppDefaultActivity {
     protected void onCreate(Bundle savedInstanceState) {
 
 
-        theme = getSharedPreferences(MainFragment.THEME_PREFERENCES, MODE_PRIVATE).getString(MainFragment.THEME_SAVED, MainFragment.LIGHTTHEME);
-        if (theme.equals(MainFragment.DARKTHEME)) {
+        theme = getSharedPreferences(THEME_PREFERENCES, MODE_PRIVATE).getString(THEME_SAVED, LIGHTTHEME);
+        if (theme.equals(DARKTHEME)) {
             Log.d("OskarSchindler", "One");
             setTheme(R.style.CustomStyle_DarkTheme);
         } else {
@@ -44,10 +48,10 @@ public class AboutActivity extends AppDefaultActivity {
         super.onCreate(savedInstanceState);
 //        mId = (UUID)i.getSerializableExtra(TodoNotificationService.TODOUUID);
 
-        final Drawable backArrow = getResources().getDrawable(R.drawable.abc_ic_ab_back_mtrl_am_alpha);
-        if (backArrow != null) {
-            backArrow.setColorFilter(Color.WHITE, PorterDuff.Mode.SRC_ATOP);
-        }
+//        final Drawable backArrow = getResources().getDrawable(R.drawable.abc_ic_ab_back_mtrl_am_alpha);
+//        if (backArrow != null) {
+//            backArrow.setColorFilter(Color.WHITE, PorterDuff.Mode.SRC_ATOP);
+//        }
         try {
             PackageInfo info = getPackageManager().getPackageInfo(getPackageName(), 0);
             appVersion = info.versionName;
@@ -59,7 +63,7 @@ public class AboutActivity extends AppDefaultActivity {
         setSupportActionBar(toolbar);
         if (getSupportActionBar() != null) {
             getSupportActionBar().setDisplayHomeAsUpEnabled(true);
-            getSupportActionBar().setHomeAsUpIndicator(backArrow);
+//            getSupportActionBar().setHomeAsUpIndicator(backArrow);
         }
     }
 
