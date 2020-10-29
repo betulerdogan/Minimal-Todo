@@ -35,6 +35,8 @@ import java.util.Collections;
 
 
 public class BasicListAdapter extends RecyclerView.Adapter<BasicViewHolder> implements ItemTouchHelperClass.ItemTouchHelperAdapter {
+    private static final String DATE_TIME_FORMAT_12_HOUR = "MMM d, yyyy  h:mm a";
+    private static final String DATE_TIME_FORMAT_24_HOUR = "MMM d, yyyy  k:mm";
     private ArrayList<ToDoItem> items;
     private ToDoListener listener;
     private Context context;
@@ -63,35 +65,7 @@ public class BasicListAdapter extends RecyclerView.Adapter<BasicViewHolder> impl
 
     @Override
     public void onItemRemoved(final int position) {
-        //Remove this line if not using Google Analytics
-        // app.send(this, "Action", "Swiped Todo Away");
-
         listener.onRemove(items.get(position));
-        /*toDoViewModel.deleteItem(mJustDeletedToDoItem);
-
-
-        mIndexOfDeletedToDoItem = position;
-        Intent i = new Intent(getContext(), TodoNotificationService.class);
-        deleteAlarm(i, mJustDeletedToDoItem.getIdentifier().hashCode());
-        notifyItemRemoved(position);
-
-        String toShow = "Todo";
-        Snackbar.make(mCoordLayout, "Deleted " + toShow, Snackbar.LENGTH_LONG)
-                .setAction("UNDO", new View.OnClickListener() {
-                    @Override
-                    public void onClick(View v) {
-                        //Comment the line below if not using Google Analytics
-                        app.send(this, "Action", "UNDO Pressed");
-                        toDoViewModel.saveItem(mJustDeletedToDoItem);
-                        if (mJustDeletedToDoItem.getToDoDate() != null && mJustDeletedToDoItem.hasReminder()) {
-                            Intent i = new Intent(getContext(), TodoNotificationService.class);
-                            i.putExtra(TodoNotificationService.TODOTEXT, mJustDeletedToDoItem.getToDoText());
-                            i.putExtra(TodoNotificationService.TODOUUID, mJustDeletedToDoItem.getIdentifier());
-                            createAlarm(i, mJustDeletedToDoItem.getIdentifier().hashCode(), mJustDeletedToDoItem.getToDoDate().getTime());
-                        }
-                        notifyItemInserted(mIndexOfDeletedToDoItem);
-                    }
-                }).show();*/
     }
 
     @Override
@@ -104,9 +78,7 @@ public class BasicListAdapter extends RecyclerView.Adapter<BasicViewHolder> impl
     public void onBindViewHolder(final BasicViewHolder holder, final int position) {
         ToDoItem item = items.get(position);
         holder.item = item;
-        //Background color for each to-do item. Necessary for night/day mode
         int bgColor;
-        //color of title text in our to-do item. White for night mode, dark gray for day mode
         int todoTextColor;
         if (toDoTheme.isLightTheme()) {
             bgColor = Color.WHITE;
@@ -138,9 +110,9 @@ public class BasicListAdapter extends RecyclerView.Adapter<BasicViewHolder> impl
         if (item.getToDoDate() != null) {
             String timeToShow;
             if (android.text.format.DateFormat.is24HourFormat(context)) {
-                timeToShow = AddToDoFragment.formatDate(MainFragment.DATE_TIME_FORMAT_24_HOUR, item.getToDoDate());
+                timeToShow = AddToDoFragment.formatDate(DATE_TIME_FORMAT_24_HOUR, item.getToDoDate());
             } else {
-                timeToShow = AddToDoFragment.formatDate(MainFragment.DATE_TIME_FORMAT_12_HOUR, item.getToDoDate());
+                timeToShow = AddToDoFragment.formatDate(DATE_TIME_FORMAT_12_HOUR, item.getToDoDate());
             }
             holder.mTimeTextView.setText(timeToShow);
         }

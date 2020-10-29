@@ -74,27 +74,13 @@ import static android.content.Context.MODE_PRIVATE;
 public class MainFragment extends AppDefaultFragment implements ToDoListener {
     private RecyclerViewEmptySupport mRecyclerView;
     private FloatingActionButton mAddToDoItemFAB;
-    private ArrayList<ToDoItem> mToDoItemsArrayList;
     private CoordinatorLayout mCoordLayout;
-    private BasicListAdapter adapter;
     private static final int REQUEST_ID_TODO_ITEM = 100;
-    public static final String DATE_TIME_FORMAT_12_HOUR = "MMM d, yyyy  h:mm a";
-    public static final String DATE_TIME_FORMAT_24_HOUR = "MMM d, yyyy  k:mm";
-    public static final String FILENAME = "todoitems.json";
-    private StoreRetrieveData storeRetrieveData;
-    public ItemTouchHelper itemTouchHelper;
+    private ItemTouchHelper itemTouchHelper;
     private CustomRecyclerScrollViewListener customRecyclerScrollViewListener;
     private ToDoTheme mTheme;
     private List<ToDoItem> mItems;
-    private String theme = "name_of_the_theme";
-
     private AnalyticsApplication app;
-    private String[] testStrings = {"Clean my room",
-            "Water the plants",
-            "Get car washed",
-            "Get my dry cleaning"
-    };
-
     private ToDoViewModel toDoViewModel;
 
     @Override
@@ -102,6 +88,7 @@ public class MainFragment extends AppDefaultFragment implements ToDoListener {
         super.onCreate(savedInstanceState);
 
         toDoViewModel = getViewModel();
+        app = (AnalyticsApplication) getActivity().getApplication();
     }
 
     private ToDoViewModel getViewModel() {
@@ -117,16 +104,11 @@ public class MainFragment extends AppDefaultFragment implements ToDoListener {
     @Override
     public void onViewCreated(final View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
-        app = (AnalyticsApplication) getActivity().getApplication();
-
-        storeRetrieveData = new StoreRetrieveData(getContext(), FILENAME);
-        mToDoItemsArrayList = getLocallyStoredData(storeRetrieveData);
 
         mCoordLayout = (CoordinatorLayout) view.findViewById(R.id.myCoordinatorLayout);
         mAddToDoItemFAB = (FloatingActionButton) view.findViewById(R.id.addToDoItemFAB);
 
         mAddToDoItemFAB.setOnClickListener(new View.OnClickListener() {
-            @SuppressWarnings("deprecation")
             @Override
             public void onClick(View v) {
                 app.send(this, "Action", "FAB pressed");
@@ -151,22 +133,6 @@ public class MainFragment extends AppDefaultFragment implements ToDoListener {
         });
     }
 
-    public static ArrayList<ToDoItem> getLocallyStoredData(StoreRetrieveData storeRetrieveData) {
-        ArrayList<ToDoItem> items = null;
-
-        try {
-            items = storeRetrieveData.loadFromFile();
-
-        } catch (IOException | JSONException e) {
-            e.printStackTrace();
-        }
-
-        if (items == null) {
-            items = new ArrayList<>();
-        }
-        return items;
-    }
-
     @Override
     public void onResume() {
         super.onResume();
@@ -179,7 +145,7 @@ public class MainFragment extends AppDefaultFragment implements ToDoListener {
         }
 
         mRecyclerView = view.findViewById(R.id.toDoRecyclerView);
-        adapter = new BasicListAdapter(new ArrayList<>(mItems), MainFragment.this, getContext(), mTheme);
+        BasicListAdapter adapter = new BasicListAdapter(new ArrayList<>(mItems), MainFragment.this, getContext(), mTheme);
 
         if (mTheme.isLightTheme()) {
             mRecyclerView.setBackgroundColor(getResources().getColor(R.color.primary_lightest));
@@ -244,21 +210,6 @@ public class MainFragment extends AppDefaultFragment implements ToDoListener {
                 return;
             }
             toDoViewModel.saveItem(item);
-        }
-    }
-
-    private void addToDataStore(ToDoItem item) {
-        mToDoItemsArrayList.add(item);
-        adapter.notifyItemInserted(mToDoItemsArrayList.size() - 1);
-    }
-
-    @Override
-    public void onPause() {
-        super.onPause();
-        try {
-            storeRetrieveData.saveToFile(mToDoItemsArrayList);
-        } catch (JSONException | IOException e) {
-            e.printStackTrace();
         }
     }
 
